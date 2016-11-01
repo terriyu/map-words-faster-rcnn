@@ -97,6 +97,14 @@ def im_detect_sliding_crop(net, im, crop_h, crop_w, step):
 
     return scores, boxes
 
+def load_distinct_colors(path):
+    with open(path, 'r') as f:
+        hex_colors = f.read().splitlines()
+
+    rgb_colors = [(int(h[4:6], 16), int(h[2:4], 16), int(h[0:2], 16)) for h in hex_colors]
+
+    return rgb_colors 
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Face Detection using Faster R-CNN')
@@ -149,9 +157,13 @@ if __name__ == '__main__':
 
     im_names = ['D0090-5242001.tiff']
 
-    angles = [-90, -70, -50, -30, -10, 0, 10, 30, 50, 70, 90]
+    #angles = [-90, -70, -50, -30, -10, 0, 10, 30, 50, 70, 90]
     #angles = [50, 90]
-    colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0), (0, 0, 128), (0, 128, 0), (128, 0, 0), (0, 128, 128), (128, 0, 128), (128, 128, 0)]
+    angles = np.insert(np.linspace(-90, 90, 20), 0, 0)
+
+    #colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0), (0, 0, 128), (0, 128, 0), (128, 0, 0), (0, 128, 128), (128, 0, 128), (128, 128, 0)]
+    colors_dir = 'tools'
+    colors = load_distinct_colors(os.path.join(colors_dir, 'colors_rgb_divide.txt'))
 
     for im_name in im_names:
         im_orig = cv2.imread(os.path.join(im_dir, im_name))
@@ -207,7 +219,7 @@ if __name__ == '__main__':
 
                 # Add data to dictionary
                 # Convert numpy types to regular Python float, so we can save dictionary to JSON later
-                data_dict = {'score': float(score), 'angle': angle, 'height': float(height), 'width': float(width), 'aspect_ratio': float(aspect_ratio), 'center': [float(x) for x in center], 'ul': [float(bbox[0]), float(bbox[1])], 'ur': [float(bbox[2]), float(bbox[1])], 'll': [float(bbox[0]), float(bbox[3])], 'lr': [float(bbox[2]), float(bbox[3])]}
+                data_dict = {'score': float(score), 'angle': float(angle), 'height': float(height), 'width': float(width), 'aspect_ratio': float(aspect_ratio), 'center': [float(x) for x in center], 'ul': [float(bbox[0]), float(bbox[1])], 'ur': [float(bbox[2]), float(bbox[1])], 'll': [float(bbox[0]), float(bbox[3])], 'lr': [float(bbox[2]), float(bbox[3])]}
 
                 # Rotate box
                 revrot_mat = cv2.getRotationMatrix2D((cols / 2, rows / 2), -angle, 1)
@@ -241,7 +253,11 @@ if __name__ == '__main__':
             det['ll_rot'] = [float(x) for x in det['ll_rot']]
             det['lr_rot'] = [float(x) for x in det['lr_rot']]
 
-        det_dict = {'det_data': det_data, 'det_counts': det_counts}
+        det_dict = {}
+        det_dict['det_data'] = det_data
+        det_dict['det_counts'] = det_counts
+        det_dict['angles'] = [float(x) for x in angles]
+        det_dict['colors'] = colors[:len(angles)]
 
         dets_dir = 'data'
         if not os.path.exists(dets_dir):
