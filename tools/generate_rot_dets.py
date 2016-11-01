@@ -150,16 +150,17 @@ if __name__ == '__main__':
     crop_h = 500
     step = 400
 
-    im_dir = 'images'
-    out_dir = 'output'
+    im_dir = '/scratch3/terriyu/maps'
+    out_dir = '/scratch3/terriyu/output'
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    im_names = ['D0090-5242001.tiff']
+    #im_names = ['D0090-5242001.tiff']
+    im_names = ['D0006-0285025.tiff', 'D0042-1070004.tiff', 'D0042-1070013.tiff', 'D0117-5755025.tiff', 'D5005-5028100.tiff', 'D0017-1592006.tiff', 'D0042-1070005.tiff', 'D0042-1070015.tiff', 'D0117-5755033.tiff', 'D5005-5028102.tiff', 'D0041-5370006.tiff', 'D0042-1070006.tiff', 'D0079-0019007.tiff', 'D0117-5755035.tiff', 'D5005-5028149.tiff', 'D0041-5370026.tiff', 'D0042-1070007.tiff', 'D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
 
     #angles = [-90, -70, -50, -30, -10, 0, 10, 30, 50, 70, 90]
     #angles = [50, 90]
-    angles = np.insert(np.linspace(-90, 90, 20), 0, 0)
+    angles = np.insert(np.linspace(-90, 90, 30), 0, 0)
 
     #colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0), (0, 0, 128), (0, 128, 0), (128, 0, 0), (0, 128, 128), (128, 0, 128), (128, 128, 0)]
     colors_dir = 'tools'
@@ -167,12 +168,13 @@ if __name__ == '__main__':
 
     for im_name in im_names:
         im_orig = cv2.imread(os.path.join(im_dir, im_name))
+        print "Read image %s" % im_name
         diagonal = np.ceil(np.sqrt(np.sum(np.square(im_orig.shape))))
         rows_orig, cols_orig, _ = im_orig.shape
-        h_padding = np.int_(np.ceil((diagonal - cols_orig)/2.0))
-        v_padding = np.int_(np.ceil((diagonal - rows_orig)/2.0))
+        row_padding = np.int_(np.ceil((diagonal - rows_orig)/2.0))
+        col_padding = np.int_(np.ceil((diagonal - cols_orig)/2.0))
 
-        im_padded = cv2.copyMakeBorder(im_orig, v_padding, v_padding, h_padding, h_padding, cv2.BORDER_CONSTANT, value=(128, 128, 128))
+        im_padded = cv2.copyMakeBorder(im_orig, row_padding, row_padding, col_padding, col_padding, cv2.BORDER_CONSTANT, value=(128, 128, 128))
         rows, cols, _ = im_padded.shape
         im_name_root = string.split(im_name, '.')[0]
 
@@ -188,7 +190,7 @@ if __name__ == '__main__':
             rot_mat = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
             im_rot = cv2.warpAffine(im_padded, rot_mat, (cols, rows))
             # Output file name for rotated image
-            im_rot_name = im_name_root + '_' + str(angle) + 'deg.tiff'
+            im_rot_name = im_name_root + '_' + str(round(angle,1)) + 'deg.tiff'
 
             # # Detect all object classes and regress object bounds
             timer = Timer()
@@ -240,7 +242,7 @@ if __name__ == '__main__':
                 det_data.append(data_dict)
 
         # Crop composite image to remove padding
-        im_composite = im_composite[v_padding:-v_padding, h_padding:-h_padding]
+        im_composite = im_composite[row_padding:-row_padding, col_padding:-col_padding]
 
         im_composite_name = im_name_root + '_composite.tiff'
         cv2.imwrite(os.path.join(out_dir, im_composite_name), im_composite)
@@ -258,8 +260,10 @@ if __name__ == '__main__':
         det_dict['det_counts'] = det_counts
         det_dict['angles'] = [float(x) for x in angles]
         det_dict['colors'] = colors[:len(angles)]
+        det_dict['row_padding'] = row_padding
+        det_dict['col_padding'] = col_padding
 
-        dets_dir = 'data'
+        dets_dir = '/scratch3/terriyu/data'
         if not os.path.exists(dets_dir):
             os.makedirs(dets_dir)
 
