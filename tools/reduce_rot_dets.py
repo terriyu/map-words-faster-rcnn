@@ -113,10 +113,10 @@ if __name__ == '__main__':
         cv2.line(im_composite_reduced, tuple(lower_left_rot), tuple(upper_left_rot), line_color, 4)
 
         # Test shift in box coordinates
-        cv2.line(im_orig, tuple(upper_left_rot_shift), tuple(upper_right_rot_shift), line_color, 4)
-        cv2.line(im_orig, tuple(upper_right_rot_shift), tuple(lower_right_rot_shift), line_color, 4)
-        cv2.line(im_orig, tuple(lower_right_rot_shift), tuple(lower_left_rot_shift), line_color, 4)
-        cv2.line(im_orig, tuple(lower_left_rot_shift), tuple(upper_left_rot_shift), line_color, 4)
+        #cv2.line(im_orig, tuple(upper_left_rot_shift), tuple(upper_right_rot_shift), line_color, 4)
+        #cv2.line(im_orig, tuple(upper_right_rot_shift), tuple(lower_right_rot_shift), line_color, 4)
+        #cv2.line(im_orig, tuple(lower_right_rot_shift), tuple(lower_left_rot_shift), line_color, 4)
+        #cv2.line(im_orig, tuple(lower_left_rot_shift), tuple(upper_left_rot_shift), line_color, 4)
 
     # Crop composite image to remove padding
     im_composite_reduced = im_composite_reduced[row_padding:-row_padding, col_padding:-col_padding]
@@ -128,8 +128,8 @@ if __name__ == '__main__':
     cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_composite_reduced)
     print "Wrote composite image with reduced detections to %s" % os.path.join(out_dir, im_composite_reduced_name)
 
-    im_composite_reduced_name = im_root + '_' + args.method + '_check_composite.tiff'
-    cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_orig)
+    #im_composite_reduced_name = im_root + '_' + args.method + '_check_composite.tiff'
+    #cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_orig)
 
     # Write bounding boxes for reduced detections to .mat file
     mat_dir = '/scratch3/terriyu/mat'
