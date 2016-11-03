@@ -151,15 +151,19 @@ if __name__ == '__main__':
     step = 400
 
     im_dir = '/scratch3/terriyu/maps'
-    out_dir = '/scratch3/terriyu/output'
+    out_dir = '/scratch3/terriyu/working/output'
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    #im_names = ['D0090-5242001.tiff']
-    im_names = ['D0006-0285025.tiff', 'D0042-1070004.tiff', 'D0042-1070013.tiff', 'D0117-5755025.tiff', 'D5005-5028100.tiff', 'D0017-1592006.tiff', 'D0042-1070005.tiff', 'D0042-1070015.tiff', 'D0117-5755033.tiff', 'D5005-5028102.tiff', 'D0041-5370006.tiff', 'D0042-1070006.tiff', 'D0079-0019007.tiff', 'D0117-5755035.tiff', 'D5005-5028149.tiff', 'D0041-5370026.tiff', 'D0042-1070007.tiff', 'D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
+    im_names = ['D0090-5242001.tiff']
+    #im_names = ['D0006-0285025.tiff', 'D0042-1070004.tiff', 'D0042-1070013.tiff', 'D0117-5755025.tiff', 'D5005-5028100.tiff', 'D0017-1592006.tiff', 'D0042-1070005.tiff', 'D0042-1070015.tiff', 'D0117-5755033.tiff', 'D5005-5028102.tiff', 'D0041-5370006.tiff', 'D0042-1070006.tiff', 'D0079-0019007.tiff', 'D0117-5755035.tiff', 'D5005-5028149.tiff', 'D0041-5370026.tiff', 'D0042-1070007.tiff', 'D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
+# Note D0042-1070015.tiff fails
+    #im_names = ['D0117-5755033.tiff', 'D5005-5028102.tiff', 'D0041-5370006.tiff', 'D0042-1070006.tiff', 'D0079-0019007.tiff', 'D0117-5755035.tiff', 'D5005-5028149.tiff', 'D0041-5370026.tiff', 'D0042-1070007.tiff']
+    #im_names = ['D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
+    #im_names = ['D0042-1070015.tiff']
 
     #angles = [-90, -70, -50, -30, -10, 0, 10, 30, 50, 70, 90]
-    #angles = [50, 90]
+    #angles = [-90, 90]
     angles = np.insert(np.linspace(-90, 90, 30), 0, 0)
 
     #colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0), (0, 0, 128), (0, 128, 0), (128, 0, 0), (0, 128, 128), (128, 0, 128), (128, 128, 0)]
@@ -198,17 +202,21 @@ if __name__ == '__main__':
             # scores, boxes = im_detect(net, im)
             scores, boxes = im_detect_sliding_crop(net, im_rot, crop_h, crop_w, step)
             timer.toc()
+            print "Angle = %f" % angle
             print ('Detection took {:.3f}s for ' '{:d} object proposals').format(timer.total_time, boxes.shape[0])
 
             dets = np.hstack((boxes, scores)).astype(np.float32)
             keep = nms(dets, NMS_THRESH)
+            print "Finished NMS, number of detections kept = %i" % len(keep)
             dets = dets[keep, :]
 
             keep = np.where(dets[:, 4] > CONF_THRESH)
             dets = dets[keep]
             det_counts[angle] = dets.shape[0]
+            print "Writing detections for angle %f to file" % angle
             save_detections(im_rot, os.path.join(out_dir, im_rot_name), dets, CONF_THRESH, colors[idx])
 
+            print "Rotating detections back"
             for i in xrange(dets.shape[0]):
                 score = dets[i, -1]
                 bbox = dets[i, :4]
@@ -221,7 +229,7 @@ if __name__ == '__main__':
 
                 # Add data to dictionary
                 # Convert numpy types to regular Python float, so we can save dictionary to JSON later
-                data_dict = {'score': float(score), 'angle': float(angle), 'height': float(height), 'width': float(width), 'aspect_ratio': float(aspect_ratio), 'center': [float(x) for x in center], 'ul': [float(bbox[0]), float(bbox[1])], 'ur': [float(bbox[2]), float(bbox[1])], 'll': [float(bbox[0]), float(bbox[3])], 'lr': [float(bbox[2]), float(bbox[3])]}
+                data_dict = {'score': float(score), 'angle': float(angle), 'color': list(colors[idx]), 'height': float(height), 'width': float(width), 'aspect_ratio': float(aspect_ratio), 'center': [float(x) for x in center], 'ul': [float(bbox[0]), float(bbox[1])], 'ur': [float(bbox[2]), float(bbox[1])], 'll': [float(bbox[0]), float(bbox[3])], 'lr': [float(bbox[2]), float(bbox[3])]}
 
                 # Rotate box
                 revrot_mat = cv2.getRotationMatrix2D((cols / 2, rows / 2), -angle, 1)
@@ -256,6 +264,7 @@ if __name__ == '__main__':
             det['lr_rot'] = [float(x) for x in det['lr_rot']]
 
         det_dict = {}
+        det_dict['image_file'] = im_name
         det_dict['det_data'] = det_data
         det_dict['det_counts'] = det_counts
         det_dict['angles'] = [float(x) for x in angles]
@@ -263,7 +272,7 @@ if __name__ == '__main__':
         det_dict['row_padding'] = row_padding
         det_dict['col_padding'] = col_padding
 
-        dets_dir = '/scratch3/terriyu/data'
+        dets_dir = '/scratch3/terriyu/working/data'
         if not os.path.exists(dets_dir):
             os.makedirs(dets_dir)
 
