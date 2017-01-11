@@ -1,15 +1,11 @@
-### About
+## About
 
-This repository contains Python testing code for words detection, which (including this README) is based on the awesome [py-faster-rcnn repository](https://github.com/rbgirshick/py-faster-rcnn). 
+This repository contains work-in-progress for detecting words in historical maps.  This work is based on [Faster R-CNN](https://github.com/rbgirshick/py-faster-rcnn).
 
-### License
-
-It is released under the MIT License (as of py-faster-rcnn. Refer to the LICENSE file for details).
-
-### Contents
+## Quick start
 1. [Requirements: software](#requirements-software)
 2. [Requirements: hardware](#requirements-hardware)
-3. [Basic installation](#installation-sufficient-for-the-demo)
+3. [Basic installation](#installation)
 4. [Demo](#demo)
 
 ### Requirements: software
@@ -31,18 +27,18 @@ It is released under the MIT License (as of py-faster-rcnn. Refer to the LICENSE
 
 ### Requirements: hardware
 
-  It is strongly recommened to use a morden GPU (e.g., Titan or K40).
+It is strongly recommended to use a modern GPU (e.g., Titan or K40).
 
 ### Installation
 
 1. Clone the repository
   ```Shell
-  git clone https://github.com/playerkk/map-words-faster-rcnn
+  git clone https://github.com/terriyu/map-words-faster-rcnn
   ```
 
 2. Build the Cython modules
     ```Shell
-    # We'll call the directory that you cloned this repository `FRCN_ROOT`. 
+    # We'll call the directory that you cloned this repository `FRCN_ROOT`.
     cd $FRCN_ROOT/lib
     make
     ```
@@ -64,20 +60,20 @@ It is released under the MIT License (as of py-faster-rcnn. Refer to the LICENSE
     ./pre-trained-models/fetch_pre_trained_models.sh
     ```
 
-    This will download a pre-trained words detection model into the `pre-trained-models' folder.
+    This will download a pre-trained word detection model into the `pre-trained-models` folder.
 
 ### Demo
 
-*After successfully completing [basic installation](#installation-sufficient-for-the-demo)*, you'll be ready to run the demo.
+*After successfully completing [basic installation](#installation)*, you'll be ready to run the demo.
 
 To run the demo
 ```Shell
 cd $FRCN_ROOT
 ./tools/demo.py
 ```
-The demo performs words detection using a pre-trained VGG16 network. By default, it will use the first GPU on your machine. You can use the '--gpu' flag to specify another one. If you don't have a GPU, you can run the demo using the CPU
+The demo performs word detection using a pre-trained VGG16 network. By default, it will use the first GPU on your machine. You can use the `--gpu` flag to specify another one. If you don't have a GPU, you can run the demo using the CPU
 ```Shell
-./toos/demo.py --cpu
+./tools/demo.py --cpu
 ```
 
-See the detection results in the 'output' folder.
+See the detection results in the `output` folder.
