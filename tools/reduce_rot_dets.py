@@ -124,7 +124,7 @@ if __name__ == '__main__':
     # Write composite image with reduced detections
     im_root = string.split(string.split(args.image_path, os.sep)[-1], '.')[0]
     im_composite_reduced_name = im_root + '_' + args.method + '_composite_reduced.tiff'
-    out_dir = '/scratch3/terriyu/composite'
+    out_dir = '/scratch3/terriyu/working/reduce/composite'
     cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_composite_reduced)
     print "Wrote composite image with reduced detections to %s" % os.path.join(out_dir, im_composite_reduced_name)
 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     #cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_orig)
 
     # Write bounding boxes for reduced detections to .mat file
-    mat_dir = '/scratch3/terriyu/mat'
+    mat_dir = '/scratch3/terriyu/working/reduce/mat'
     mat_fname = im_root + '_boxes.mat'
     savemat(os.path.join(mat_dir, mat_fname), dict(boxes = boxes))
     print "Wrote bounding box data to .mat file %s" % os.path.join(mat_dir, mat_fname)
