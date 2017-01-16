@@ -9,7 +9,6 @@ import argparse
 import string
 import json
 from sklearn.cluster import KMeans
-from scipy.io import savemat
 
 VALID_CHOICES = set(['kmeans', 'random_neighbors'])
 
@@ -131,15 +130,15 @@ if __name__ == '__main__':
         # Write composite image with reduced detections
         #im_root = string.split(string.split(args.image_path, os.sep)[-1], '.')[0]
         im_composite_reduced_name = im_root + '_' + args.method + '_composite_reduced.tiff'
-        out_dir = '/scratch3/terriyu/working/reduce/composite'
+        out_dir = '/scratch3/terriyu/working/reduce/composite_reduced_det'
         cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_composite_reduced)
         print "Wrote composite image with reduced detections to %s" % os.path.join(out_dir, im_composite_reduced_name)
 
         #im_composite_reduced_name = im_root + '_' + args.method + '_check_composite.tiff'
         #cv2.imwrite(os.path.join(out_dir, im_composite_reduced_name), im_orig)
 
-        # Write bounding boxes for reduced detections to .mat file
-        mat_dir = '/scratch3/terriyu/working/reduce/mat'
-        mat_fname = im_root + '_boxes.mat'
-        savemat(os.path.join(mat_dir, mat_fname), dict(boxes = boxes))
-        print "Wrote bounding box data to .mat file %s" % os.path.join(mat_dir, mat_fname)
+        # Write bounding boxes for reduced detections to .npy file
+        npy_dir = '/scratch3/terriyu/working/reduce/reduced_det_data'
+        npy_fname = im_root + '_boxes.npy'
+        np.save(os.path.join(npy_dir, npy_fname), boxes)
+        print "Wrote bounding box data to .npy file %s" % os.path.join(npy_dir, npy_fname)

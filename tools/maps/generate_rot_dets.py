@@ -151,7 +151,7 @@ if __name__ == '__main__':
     step = 400
 
     im_dir = '/scratch3/terriyu/maps'
-    out_dir = '/scratch3/terriyu/working/generate/images_det'
+    out_dir = '/scratch3/terriyu/working/generate/images_rawdet'
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -272,7 +272,7 @@ if __name__ == '__main__':
         det_dict['row_padding'] = row_padding
         det_dict['col_padding'] = col_padding
 
-        dets_dir = '/scratch3/terriyu/working/generate/dets_data'
+        dets_dir = '/scratch3/terriyu/working/generate/rawdet_data'
         if not os.path.exists(dets_dir):
             os.makedirs(dets_dir)
 
