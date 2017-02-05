@@ -6,18 +6,35 @@ import os
 import string
 
 def adjust_gamma(image, gamma=1.0):
-    """Adjust gamma of an image (change brightness)"""
+    """Adjust gamma of an image (change brightness)
+
+    Args:
+        image (2D array) - image to process
+        gamma (float) - gamma value that determines brightness
+
+    Returns:
+        corrected_image (2D array) - gamma corrected image 
+    """
 
     # Build a lookup table mapping the pixel values [0, 255] to
     # their adjusted gamma values
     invGamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
 
-    # apply gamma correction using the lookup table
-    return cv2.LUT(image, table)
+    # Apply gamma correction using the lookup table
+    corrected_image = cv2.LUT(image, table)
+    return corrected_image
 
 def lighten_black(image, val):
-    """Make black pixels image lighter color (grayish)"""
+    """Make black pixels image lighter color (grayish)
+
+    Args:
+        image (2D array) - image to process
+        val (int) - specifies grayscale color (val, val, val) 
+
+    Returns:
+        new_image (2D array) - image with black pixels replaced by grayscale pixels 
+    """
 
     # Extract dimensions of image
     H, W, C = image.shape
