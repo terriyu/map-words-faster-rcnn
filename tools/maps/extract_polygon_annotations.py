@@ -1,9 +1,9 @@
 # Script to extract ground truth annotations from MATLAB format
 # and save them in a Python dictionary which is written to JSON
 
-#This is a pre-processing step to put all the annotations in a single
-#JSON file, so we don't have to deal with extracting the annotations
-#when we do evaluation.
+# This is a pre-processing step to put all the annotations in a single
+# JSON file, so we don't have to deal with extracting the annotations
+# when we do evaluation.
 
 import os
 import string
