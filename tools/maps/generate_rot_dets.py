@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Script to compute detections for rotated versions of images
+
 from __future__ import division
 import _init_paths
 from fast_rcnn.config import cfg
@@ -14,30 +16,37 @@ import os
 import argparse
 import string
 import json
-from sklearn.cluster import KMeans
 
 NETS = {'vgg16': ('VGG16', 'pre-trained-models/map_words_faster_rcnn.caffemodel')}
 
-def vis_detections(im, title, dets, thresh):
-    # im = im[:, :, (2, 1, 0)]
+def write_detections_to_img(im, im_path, dets, threshold, color = (0, 255, 0)):
+    """Draw detection boxes on image if their scores are above threshold
+       Image with boxes will be written to path specified by im_path
+
+    Args:
+        im (2D array) - original image
+        im_path (string) - path to write new image
+        dets (2D array) - detections data
+        threshold (float) - only write a detection box if its score >= threshold
+        color (tuple) - RGB color for drawing detection box
+
+    Returns: Nothing
+    """
+
+    # Loop through detections
     for i in xrange(dets.shape[0]):
+        # Extract detection bounding box and score
         bbox = dets[i, :4]
         score = dets[i, -1]
-        if score > thresh:
-            cv2.rectangle(im, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
-
-    cv2.imshow(title, im)
-    cv2.waitKey(0)
-
-def save_detections(im, im_name, dets, thresh, color = (0, 255, 0)):
-    for i in xrange(dets.shape[0]):
-        bbox = dets[i, :4]
-        score = dets[i, -1]
-        if score > thresh:
+        # Draw detection box if score is above threshold
+        if score > threshold:
             cv2.rectangle(im, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 4)
-    cv2.imwrite(im_name, im)
+    # Write image with detections
+    cv2.imwrite(im_path, im)
 
 def im_detect_sliding_crop(net, im, crop_h, crop_w, step):
+    """ """
+
     imh, imw, _ = im.shape
 
     cls_ind = 1
@@ -61,17 +70,9 @@ def im_detect_sliding_crop(net, im, crop_h, crop_w, step):
 
             crop_im = im[y1:y2, x1:x2, :]
 
-            # # check
-            # cv2.imshow("im", crop_im)
-            # cv2.waitKey(0)
-            # print crop_im.shape
             crop_scores, crop_boxes = im_detect(net, crop_im)
             crop_boxes = crop_boxes[:, 4*cls_ind:4*(cls_ind + 1)]
             crop_scores = crop_scores[:, cls_ind] + (0.01 * np.random.random() - 0.005)
-
-            # vis_detections(crop_im, 'crop image',
-            #                np.hstack((crop_boxes,
-            #                              crop_scores[:, np.newaxis])), 0.25)
 
             crop_boxes[:,0] += x1
             crop_boxes[:,1] += y1
@@ -81,16 +82,6 @@ def im_detect_sliding_crop(net, im, crop_h, crop_w, step):
             boxes = np.vstack((boxes, crop_boxes))
             scores = np.vstack((scores, crop_scores[:, np.newaxis]))
 
-            # # print crop_boxes.shape, crop_scores.shape, boxes.shape, scores.shape
-            # keep_idx = np.where(crop_scores > 0.1)
-            # print len(keep_idx[0])
-
-            # keep_idx = np.where(scores > 0.1)
-            # print len(keep_idx[0])
-
-            # vis_detections(im, 'entire image',
-            #                np.hstack((boxes, scores)), 0.25)
-
             x1 += step
 
         y1 += step
@@ -98,15 +89,27 @@ def im_detect_sliding_crop(net, im, crop_h, crop_w, step):
     return scores, boxes
 
 def load_distinct_colors(path):
+    """Load array of RGB values corresponding to distinct colors from file path
+
+    Args:
+        path (string) - file path for text file containing hexadecimal RGB colors
+
+    Returns:
+        rgb_colors (list of tuples) - each tuple in the list specifies an RGB color
+    """
+
+    # Read text file with hexadecimal RGB color values
     with open(path, 'r') as f:
         hex_colors = f.read().splitlines()
 
+    # Convert hexadecimal values to integers
     rgb_colors = [(int(h[4:6], 16), int(h[2:4], 16), int(h[0:2], 16)) for h in hex_colors]
 
     return rgb_colors 
 
 def parse_args():
-    """Parse input arguments."""
+    """Parse input arguments"""
+
     parser = argparse.ArgumentParser(description='Face Detection using Faster R-CNN')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
                         default=0, type=int)
@@ -155,6 +158,7 @@ if __name__ == '__main__':
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
+    # List of image file names to process in the directory
     im_names = ['D0090-5242001.tiff']
     #im_names = ['D0006-0285025.tiff', 'D0042-1070004.tiff', 'D0042-1070013.tiff', 'D0117-5755025.tiff', 'D5005-5028100.tiff', 'D0017-1592006.tiff', 'D0042-1070005.tiff', 'D0042-1070015.tiff', 'D0117-5755033.tiff', 'D5005-5028102.tiff', 'D0041-5370006.tiff', 'D0042-1070006.tiff', 'D0079-0019007.tiff', 'D0117-5755035.tiff', 'D5005-5028149.tiff', 'D0041-5370026.tiff', 'D0042-1070007.tiff', 'D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
 # Note D0042-1070015.tiff fails
@@ -162,29 +166,37 @@ if __name__ == '__main__':
     #im_names = ['D0089-5235001.tiff', 'D0117-5755036.tiff', 'D0042-1070001.tiff', 'D0042-1070009.tiff', 'D0090-5242001.tiff', 'D5005-5028052.tiff', 'D0042-1070002.tiff', 'D0042-1070010.tiff', 'D0117-5755018.tiff', 'D5005-5028054.tiff', 'D0042-1070003.tiff', 'D0042-1070012.tiff', 'D0117-5755024.tiff', 'D5005-5028097.tiff']
     #im_names = ['D0042-1070015.tiff']
 
+    # Array of angles to rotate the image
     #angles = [-90, -70, -50, -30, -10, 0, 10, 30, 50, 70, 90]
     #angles = [-90, 90]
     angles = np.insert(np.linspace(-90, 90, 30), 0, 0)
 
+    # List of colors for drawing detection boxes
     #colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 0, 255), (255, 255, 0), (0, 0, 128), (0, 128, 0), (128, 0, 0), (0, 128, 128), (128, 0, 128), (128, 128, 0)]
     colors_dir = 'tools'
     colors = load_distinct_colors(os.path.join(colors_dir, 'colors_rgb_divide.txt'))
 
+    # Loop through all image files
     for im_name in im_names:
+        # Read image file
         im_orig = cv2.imread(os.path.join(im_dir, im_name))
+        # Extract root of file name
+        im_name_root = string.split(im_name, '.')[0]
         print "Read image %s" % im_name
+
+        # Pad image, so it doesn't get cut off when rotated
         diagonal = np.ceil(np.sqrt(np.sum(np.square(im_orig.shape))))
         rows_orig, cols_orig, _ = im_orig.shape
         row_padding = np.int_(np.ceil((diagonal - rows_orig)/2.0))
         col_padding = np.int_(np.ceil((diagonal - cols_orig)/2.0))
-
         im_padded = cv2.copyMakeBorder(im_orig, row_padding, row_padding, col_padding, col_padding, cv2.BORDER_CONSTANT, value=(128, 128, 128))
         rows, cols, _ = im_padded.shape
-        im_name_root = string.split(im_name, '.')[0]
 
+        # Write padded image
         im_fname =  im_name_root + "_padded.tiff"
         cv2.imwrite(os.path.join(out_dir, im_fname), im_padded)
 
+        # Make copy of padded image to draw boxes on for composite image
         im_composite = im_padded.copy()
 
         det_data = []
@@ -199,7 +211,6 @@ if __name__ == '__main__':
             # # Detect all object classes and regress object bounds
             timer = Timer()
             timer.tic()
-            # scores, boxes = im_detect(net, im)
             scores, boxes = im_detect_sliding_crop(net, im_rot, crop_h, crop_w, step)
             timer.toc()
             print "Angle = %f" % angle
@@ -213,9 +224,13 @@ if __name__ == '__main__':
             keep = np.where(dets[:, 4] > CONF_THRESH)
             dets = dets[keep]
             det_counts[angle] = dets.shape[0]
-            print "Writing detections for angle %f to file" % angle
-            save_detections(im_rot, os.path.join(out_dir, im_rot_name), dets, CONF_THRESH, colors[idx])
 
+            # Write detections on rotated image
+            print "Writing detections for angle %f to file" % angle
+            write_detections_to_img(im_rot, os.path.join(out_dir, im_rot_name), dets, CONF_THRESH, colors[idx])
+
+            # Write detections on composite image for all angles
+            # Save detections for composite image
             print "Rotating detections back"
             for i in xrange(dets.shape[0]):
                 score = dets[i, -1]
@@ -263,6 +278,8 @@ if __name__ == '__main__':
             det['ll_rot'] = [float(x) for x in det['ll_rot']]
             det['lr_rot'] = [float(x) for x in det['lr_rot']]
 
+        # Create dictionary for detection data
+        # Fill in data
         det_dict = {}
         det_dict['image_file'] = im_name
         det_dict['det_data'] = det_data
@@ -272,6 +289,7 @@ if __name__ == '__main__':
         det_dict['row_padding'] = row_padding
         det_dict['col_padding'] = col_padding
 
+        # Write data file for detections
         dets_dir = '/scratch3/terriyu/working/generate/rawdet_data'
         if not os.path.exists(dets_dir):
             os.makedirs(dets_dir)
