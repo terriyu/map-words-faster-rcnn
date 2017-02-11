@@ -5,6 +5,7 @@
 # JSON file, so we don't have to deal with extracting the annotations
 # when we do evaluation.
 
+from __future__ import division
 import os
 import string
 import json

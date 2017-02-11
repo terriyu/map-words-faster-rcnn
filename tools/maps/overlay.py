@@ -1,5 +1,6 @@
 # Script for creating augmented images by overlaying lines over original map images
 
+from __future__ import division
 import numpy as np
 import cv2
 import os

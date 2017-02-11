@@ -1,5 +1,6 @@
 # Script to create augmented data by dilating and eroding images
 
+from __future__ import division
 import numpy as np
 import cv2
 import os
