@@ -16,7 +16,7 @@ VALID_CHOICES = set(['kmeans', 'random_neighbors'])
 
 def parse_args():
     """Parse input arguments."""
-    parser = argparse.ArgumentParser(description='Face Detection using Faster R-CNN')
+    parser = argparse.ArgumentParser(description='Reduce number of detections and eliminate redundant detections')
     parser.add_argument('--image_dir', required=True, dest='image_dir', help='Specify path to directory for image files')
     parser.add_argument('--det_dir', required=True, dest='det_dir', help='Specify path to directory for previously computed detections')
     parser.add_argument('--method', required=True, dest='method', choices=VALID_CHOICES, help='Method for reducing detections (kmeans or random_neighbors)')

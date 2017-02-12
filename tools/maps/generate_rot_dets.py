@@ -110,7 +110,7 @@ def load_distinct_colors(path):
 def parse_args():
     """Parse input arguments"""
 
-    parser = argparse.ArgumentParser(description='Face Detection using Faster R-CNN')
+    parser = argparse.ArgumentParser(description='Detect text in historical maps using Faster R-CNN')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU device id to use [0]',
                         default=0, type=int)
     parser.add_argument('--cpu', dest='cpu_mode',

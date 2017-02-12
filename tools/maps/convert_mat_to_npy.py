@@ -12,7 +12,7 @@ from scipy.io import loadmat
 def parse_args():
     """Parse input arguments."""
 
-    parser = argparse.ArgumentParser(description='Face Detection using Faster R-CNN')
+    parser = argparse.ArgumentParser(description='Convert bounding boxes from Matlab to NumPy format')
     parser.add_argument('--mat_dir', required=True, dest='mat_dir', help='Specify path to directory for previously computed detections (.mat files)')
     parser.add_argument('--dest_dir', required=True, dest='dest_dir', help='Specify path to directory for write converted .npy files')
 
