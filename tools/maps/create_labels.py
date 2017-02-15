@@ -1,4 +1,12 @@
-# Script to create labels for supervised training
+# Script to group annotations by angle for supervised training
+
+# This scripts saves two data files
+# 1) Ground truth dictionary that groups the original polygon annotations
+#    by angle
+# 2) Boxes dictionary that contains approximate, axis-aligned bounding boxes
+#    for rotated images
+
+# NOTE: We currently omit labels in the 2nd and 3rd quadrants
 
 from __future__ import division
 import os
@@ -17,18 +25,27 @@ import matplotlib.pyplot as plt
 # Raise exception if numpy raises any warnings
 np.seterr(all='raise')
 
-images_dir = 'maps-tiff'
+# Optional flag to write image files for checking boxes
+CHECK_BOXES = False
+# Optional flag to plot histograms
+PLOT_HIST = True
+
+images_dir = 'images'
 
 #mat_dir = 'annotated_map_word_polygons-20160923122008/data'
 mat_dir = 'annotated_map_word_polygons-20170120041514/data'
 
-mat_files = ['D0090-5242001.mat']
+#mat_files = ['D0090-5242001.mat']
 #mat_files = ['D0117-5755018.mat']
-#mat_files = os.listdir(mat_dir)
+mat_files = os.listdir(mat_dir)
 
 # Angles we are using for rotated images
-angles = np.linspace(-90, 90, 31)
-# Add angles we used to data file
+angle_max = 120
+angle_step = 6
+angles = np.linspace(-angle_max, angle_max, (angle_max * 2) / angle_step + 1)
+# Convert angles to a list of ints
+# We need to do this because JSON doesn't accept NumPy data formats
+# Also, we prefer to use ints rather than floats for dictionary keys
 angles_list = [int(a) for a in angles.tolist()]
 
 # Ground truth Python dictionary in which we will
@@ -40,14 +57,10 @@ gtruth_dict['angles'] = angles_list
 
 # Python dictionary containing approximate bounding boxes,
 # organized by approximate baseline angle
-labels_dict = {}
-labels_dict['data'] = {}
-labels_dict['padding'] = {}
-labels_dict['angles'] = angles_list
-
-# Bins to use for histogram
-bins = np.insert(np.linspace(-90, 90, 31), 0, -180)
-bin2 = np.linspace(-180, 180, 61)
+boxes_dict = {}
+boxes_dict['data'] = {}
+boxes_dict['padding'] = {} # Height and width padding for each image
+boxes_dict['angles'] = angles_list
 
 # Collect stats on orientations
 # Orientations range from -180 to 180 degrees
@@ -58,6 +71,10 @@ q1 = 0  # x positive, y positive
 q2 = 0  # x negative, y positive
 q3 = 0  # x negative, y negative
 q4 = 0  # x positive, y negative
+
+# Collect stats on height and width of bounding boxes
+heights = []
+widths = []
 
 print "Grouping detections by orientation...\n"
 
@@ -117,9 +134,9 @@ for mat_file in mat_files:
                     q2 += 1
                 else:
                     q3 += 1
-            # Add polygon coordinates to ground truth dictionary
+            # Add polygon coordinates to ground truth dictionary under appropriate angle key
             # FIX: Temporarily throw out labels with orientations in 2nd and 3rd quadrants
-            if ((orientation > -93) and (orientation < 93)):
+            if ((orientation > -(angle_max + angle_step / 2.0)) and (orientation < angle_max + angle_step / 2.0)):
                 bounding_polygon = np.vstack((x_coords, y_coords))
                 closest_angle = int(angles[np.argmin(np.abs(angles - orientation))])
                 gtruth_dict['data'][im_root][closest_angle].append(bounding_polygon)
@@ -132,36 +149,40 @@ print "\nComputing approximate bounding boxes for each angle...\n"
 for mat_file in mat_files:
     # Extract name of image
     im_root = string.split(mat_file, '.')[0]
-    # Initialize labels dictionary for image name key
-    labels_dict['data'][im_root] = {}
-    labels_dict['padding'][im_root] = {}
+    # Initialize boxes dictionary for image name key
+    boxes_dict['data'][im_root] = {}
+    boxes_dict['padding'][im_root] = {}
     # Read image
     im_name = im_root + '.tiff'
     im_orig = cv2.imread(os.path.join(images_dir, im_name))
     # Pad image, so it doesn't get cut off when rotated
     diagonal = np.ceil(np.sqrt(np.sum(np.square(im_orig.shape))))
-    rows_orig, cols_orig, _ = im_orig.shape
-    row_padding = np.int_(np.ceil((diagonal - rows_orig)/2.0))
-    col_padding = np.int_(np.ceil((diagonal - cols_orig)/2.0))
-    rows = rows_orig + row_padding * 2
-    cols = cols_orig + col_padding * 2
-    labels_dict['padding'][im_root]['row_padding'] = row_padding
-    labels_dict['padding'][im_root]['col_padding'] = col_padding
-    #im_padded = cv2.copyMakeBorder(im_orig, row_padding, row_padding, col_padding, col_padding, cv2.BORDER_CONSTANT, value=(128, 128, 128))
+    height_orig, width_orig, _ = im_orig.shape
+    height_padding = np.int_(np.ceil((diagonal - height_orig)/2.0))
+    width_padding = np.int_(np.ceil((diagonal - width_orig)/2.0))
+    height = height_orig + height_padding * 2
+    width = width_orig + width_padding * 2
+    # Add padding info to dictionary
+    boxes_dict['padding'][im_root]['height_padding'] = height_padding
+    boxes_dict['padding'][im_root]['width_padding'] = width_padding
+    # Make padded version of image
+    if CHECK_BOXES:
+        im_padded = cv2.copyMakeBorder(im_orig, height_padding, height_padding, width_padding, width_padding, cv2.BORDER_CONSTANT, value=(128, 128, 128))
     for angle in angles_list:
         # Initialize list for specific angle key
-        labels_dict['data'][im_root][angle] = []
+        boxes_dict['data'][im_root][angle] = []
         # Check if there are any detections for this angle
         if len(gtruth_dict['data'][im_root][angle]) > 0:
-            rot_mat = cv2.getRotationMatrix2D((cols / 2.0, rows / 2.0), angle, 1)
-            #im_rot = cv2.warpAffine(im_padded, rot_mat, (cols, rows))
+            rot_mat = cv2.getRotationMatrix2D((width / 2.0, height / 2.0), angle, 1)
+            if CHECK_BOXES:
+                im_rot = cv2.warpAffine(im_padded, rot_mat, (width, height))
             for polygon in gtruth_dict['data'][im_root][angle]:
                 x_coords = polygon[0, :]
                 y_coords = polygon[1, :]
                 num_coords = len(x_coords)
                 # Shift coordinates
-                x_coords_shift = x_coords + col_padding
-                y_coords_shift = y_coords + row_padding
+                x_coords_shift = x_coords + width_padding
+                y_coords_shift = y_coords + height_padding
                 # Rotate coordinates
                 coord_mat = np.vstack((x_coords_shift, y_coords_shift, np.ones(num_coords)))
                 rot_coords = np.dot(rot_mat, coord_mat)
@@ -174,18 +195,24 @@ for mat_file in mat_files:
                 y_max_rot = np.max(y_coords_rot)
                 height_rot = y_max_rot - y_min_rot + 1
                 width_rot = x_max_rot - x_min_rot + 1
-                # Save bounding box data to labels_dict
-                labels_dict['data'][im_root][angle].append([x_min_rot, y_min_rot, width_rot, height_rot])
+                # Save height and width info
+                heights.append(height_rot)
+                widths.append(width_rot)
+                # Save bounding box data to boxes_dict
+                boxes_dict['data'][im_root][angle].append([x_min_rot, y_min_rot, width_rot, height_rot])
                 # Draw boxes
-                #cv2.rectangle(im_rot, (np.float32(x_min_rot), np.float32(y_min_rot)), (np.float32(x_max_rot), np.float32(y_max_rot)), (0, 0, 255), 2)
-            #im_name = im_root + '_padded_angle' + str(angle) + '.tiff'
-            #cv2.imwrite(im_name, im_rot)
+                if CHECK_BOXES:
+                    cv2.rectangle(im_rot, (np.float32(x_min_rot), np.float32(y_min_rot)), (np.float32(x_max_rot), np.float32(y_max_rot)), (0, 0, 255), 2)
+            if CHECK_BOXES:
+                im_name = im_root + '_padded_angle' + str(angle) + '.tiff'
+                print "Writing image with boxes %s..." % im_name
+                cv2.imwrite(im_name, im_rot)
     print "Finished processing %s" % mat_file
 
 print "\nQuadrant data for polygon orientations"
 print "Q1 = %i, Q2 = %i, Q3 = %i, Q4 = %i\n" % (q1, q2, q3, q4)
 
-# Save extracted annotations to json file
+# Save annotations grouped by angle to json file
 # Convert NumPy arrays to Python lists
 for im in gtruth_dict['data']:
     for angle in angles_list:
@@ -196,13 +223,45 @@ gtruth_file = 'gtruth_polygons.json'
 with open(gtruth_file, 'w') as f:
     json.dump(gtruth_dict, f)
 
-print "Wrote polygon annotation data to %s" % gtruth_file
+print "Wrote polygon annotation grouped by angle data to %s" % gtruth_file
 
-labels_file = 'labels.json'
-with open(labels_file, 'w') as f:
-    json.dump(labels_dict, f)
+# Save boxes grouped by angle to json file
+boxes_file = 'boxes_grouped_by_angle.json'
+with open(boxes_file, 'w') as f:
+    json.dump(boxes_dict, f)
 
-print "Wrote labels data to %s" % labels_file
+print "Wrote boxes grouped by angle data to %s" % boxes_file
 
+# Convert stat lists to NumPy arrays
 orientations = np.array(orientations)
-#n, bins, patches = plt.hist(orientations, bins)
+heights = np.array(heights)
+widths = np.array(widths)
+
+if PLOT_HIST:
+    # Bins to use for histogram
+    # Bins that span -90 to 90 degrees
+    bins90 = np.insert(np.linspace(-93, 93, 32), 0, -180)
+    # Bins that span -180 to 180 degrees
+    bins180 = np.linspace(-183, 183, 62)
+    # Bins for pixels
+    bins_pixel = np.arange(0,1050,50)
+
+    plt.figure(1)
+    n_orientations, bins_orientations, patches_orientations = plt.hist(orientations, bins180)
+    plt.ylabel('Counts')
+    plt.xlabel('Angle (degrees)')
+    plt.title('Orientations')
+
+    plt.figure(2)
+    n_heights, bins_heights, patches_heights = plt.hist(heights, bins_pixel)
+    plt.ylabel('Counts')
+    plt.xlabel('Height (pixels)')
+    plt.title('Heights')
+
+    plt.figure(3)
+    n_widths, bins_widths, patches_widths = plt.hist(widths, bins_pixel)
+    plt.ylabel('Counts')
+    plt.xlabel('Width (pixels)')
+    plt.title('Widths')
+
+    plt.show()
