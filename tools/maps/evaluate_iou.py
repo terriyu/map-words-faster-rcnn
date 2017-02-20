@@ -14,6 +14,7 @@ import os
 import argparse
 import string
 import json
+import cv2
 from collections import defaultdict
 
 # Requires scipy version >= 0.17
@@ -27,6 +28,13 @@ logger.setLevel(logging.ERROR)
 
 from shapely.geometry import Polygon
 
+# Color constants (BGR convention, not RGB)
+RED = (0, 0, 255)
+YELLOW = (0, 255, 255)
+GREEN = (0, 255, 0)
+BLUE = (255, 0, 0)
+LINE_THICKNESS = 4
+
 def parse_args():
     """Parse input arguments."""
 
@@ -34,6 +42,8 @@ def parse_args():
     parser.add_argument('--det_dir', required=True, dest='det_dir', help='Specify path to directory for previously computed detections (.npy files)')
     parser.add_argument('--gtruth', required=True, dest='gt_file', help='Specify path to JSON file containing ground truth')
     parser.add_argument('--threshold', dest='threshold', default=0.5, help='Threshold for detection, i.e. intersection-over-union >= threshold ==> detection (default value = 0.5)')
+    parser.add_argument('--image_dir', dest='image_dir', help='Specify path to directory containing full map images')
+    parser.add_argument('--composite_dir', dest='composite_dir', help='Specify path to write composite images showing detection boxes and ground truth annotations')
     parser.add_argument('--correct_invalid', dest='correct', action ='store_true', help='Flag to specify that invalid ground truth polygon should be corrected')
     parser.add_argument('--verbose', dest='verbose', action='store_true', help='Flag to specify that additional information should be printed')
 
@@ -49,7 +59,7 @@ if __name__ == '__main__':
     else:
         print "Invalid ground truth polygons will be skipped"
 
-    print "Intersection-over-union threshold is %f\n" % args.threshold 
+    print "Intersection-over-union threshold is %f\n" % args.threshold
 
     # Load ground truth bounding polygons
     with open(args.gt_file) as f:
@@ -63,7 +73,7 @@ if __name__ == '__main__':
     # Total true positives
     tp_tot = 0
     # Total false negatives
-    fn_tot = 0 
+    fn_tot = 0
     # Total false positives
     fp_tot = 0
 
@@ -73,19 +83,22 @@ if __name__ == '__main__':
     # Total ground truth labels
     labels_tot = 0
     # Total number of invalid ground truth labels
-    invalid_tot = 0 
+    invalid_tot = 0
 
     # Histogram for how many matches we find for each label (overall)
     matches_tot_hist = defaultdict(int)
- 
+
     # Loop through all images
-    for det_file in det_files: 
+    for det_file in det_files:
         # Load detections for one image
         path = os.path.join(args.det_dir, det_file)
-        dets = np.load(path)        
+        dets = np.load(path)
         # Root name for image file
         im_root = string.split(det_file, '_')[0]
-        
+        # Read image file (if appropriate parser arguments specified)
+        if (args.image_dir is not None) and (args.composite_dir is not None):
+            im_composite = cv2.imread(os.path.join(args.image_dir, im_root + '.tiff'))
+
         print "Processing detections for %s" % (im_root + ".tiff")
 
         # Each box should have 4 x-coordinates and 4 y-coordinates
@@ -97,10 +110,10 @@ if __name__ == '__main__':
         # Initialize local counters for statistics
         # These are statistics for just one map image as opposed to the entire data set
         true_positives = 0
-        false_negatives = 0 
+        false_negatives = 0
         false_positives = 0
         num_invalid = 0  # Number of invalid ground truth labels for this image
- 
+
         # Dictionaries with statistics
         # Histogram for how many matches we find for each label (for one image)
         matches_image_hist = defaultdict(int)
@@ -116,8 +129,8 @@ if __name__ == '__main__':
         for label in gtruth_dict[im_root]:
             # Construct polygon for ground truth label
             x_coords, y_coords = label
-            exterior_gt = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))] 
-            exterior_gt.append(exterior_gt[0]) 
+            exterior_gt = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))]
+            exterior_gt.append(exterior_gt[0])
             poly_gt = Polygon(exterior_gt)
 
             # Check if polygon ground truth label is valid polygon
@@ -138,15 +151,20 @@ if __name__ == '__main__':
 
             # If the polygon is valid (or valid because we fixed it),
             # try to find a matching bounding box for the ground truth polygon
-            if valid_flag:    
+            if valid_flag:
+                # Draw polygon annotation on composite (if appropriate parser arguments specified)
+                if (args.image_dir is not None) and (args.composite_dir is not None):
+                    poly_pts = np.array(exterior_gt[:-1], np.int32)
+                    poly_pts = poly_pts.reshape((-1, 1, 2))
+                    cv2.polylines(im_composite, [poly_pts], True, RED, LINE_THICKNESS)
                 # Set flag for whether we found a match for ground truth label
                 num_matches = 0
                 # Initialize row for score matrix
                 scores_row = []
                 # Loop through all detections to find a match
-                for i in xrange(num_dets):
+                for idx in xrange(num_dets):
                     # Construct polygon for detection box
-                    x_coords, y_coords = (dets[:,0,i], dets[:,1,i])
+                    x_coords, y_coords = (dets[:,0,idx], dets[:,1,idx])
                     exterior_det = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))]
                     exterior_det.append(exterior_det[0])
                     box_det = Polygon(exterior_det)
@@ -154,14 +172,14 @@ if __name__ == '__main__':
                     poly_intersection = poly_gt.intersection(box_det)
                     poly_union = poly_gt.union(box_det)
                     # Compute intersection over union
-                    iou = poly_intersection.area / poly_union.area 
+                    iou = poly_intersection.area / poly_union.area
                     # Append score
                     # Use negative of iou since Hungarian algorithm does minimization
                     scores_row.append(iou)
                     # Consider a detection a match if IOU >= threshold
-                    if (iou >= args.threshold): 
+                    if (iou >= args.threshold):
                         num_matches += 1
-                        det_matches[i] += 1
+                        det_matches[idx] += 1
 
                 # Update local statistics for this image
                 matches_image_hist[num_matches] += 1
@@ -169,16 +187,22 @@ if __name__ == '__main__':
                 # Append entire row of scores
                 scores.append(scores_row)
 
-                #if num_matches == 0:
-                #    false_negatives += 1
-                #else:
-                    # Only add score info to matrix if a match is possible
-                    # Append entire row of scores
-                    #scores.append(scores_row)
-
-        # If a detection box was not matched with a ground truth label,
-        # it's a false positive
-        #false_positives = sum([1 for v in det_matches.values() if v == 0])
+        # Draw detection boxes on composite (if appropriate parser arguments specified)
+        if (args.image_dir is not None) and (args.composite_dir is not None):
+            for idx in xrange(num_dets):
+                x_coords, y_coords = (dets[:,0,idx], dets[:,1,idx])
+                exterior_det = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))]
+                box_pts = np.array(exterior_det, np.int32)
+                box_pts = box_pts.reshape((-1, 1, 2))
+                if det_matches[idx] > 0:
+                    cv2.polylines(im_composite, [box_pts], True, GREEN, LINE_THICKNESS)
+                else:
+                    cv2.polylines(im_composite, [box_pts], True, BLUE, LINE_THICKNESS)
+            # Write composite image
+            im_composite_name = im_root + '_dets_gt_composite_reduced.tiff'
+            im_path = os.path.join(args.composite_dir, im_composite_name)
+            cv2.imwrite(im_path, im_composite)
+            print "Wrote composite image %s" % im_path
 
         # Run Hungarian algorithm
         # Convert list to matrix
@@ -221,7 +245,7 @@ if __name__ == '__main__':
         invalid_tot += num_invalid
 
         # Print statistics for single map image
-        print "Matches histogram for this image" 
+        print "Matches histogram for this image"
         print matches_image_hist
         print "Precision = %f" % (true_positives / (true_positives + false_positives))
         print "Recall = %f" % (true_positives / (true_positives + false_negatives))
@@ -231,7 +255,7 @@ if __name__ == '__main__':
         if (true_positives + false_negatives != num_labels):
             print "ERROR: TP + FP != num ground truth labels\n"
         if (true_positives + false_positives != num_dets):
-            print "ERROR: TP + FP != num detections\n" 
+            print "ERROR: TP + FP != num detections\n"
 
     # Print statistics for entire data set
     print "\nTOTAL Precision = %f" % (tp_tot / (tp_tot + fp_tot))
