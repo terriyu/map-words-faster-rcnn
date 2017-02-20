@@ -11,6 +11,7 @@ import argparse
 import string
 import json
 from sklearn.cluster import KMeans
+from scipy.io import savemat
 
 # Choices for method argument sent to parser
 VALID_CHOICES = set(['kmeans', 'random_neighbors'])

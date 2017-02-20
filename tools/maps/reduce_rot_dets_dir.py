@@ -11,6 +11,7 @@ import argparse
 import string
 import json
 from sklearn.cluster import KMeans
+from scipy.io import savemat
 
 VALID_CHOICES = set(['kmeans', 'random_neighbors'])
 
@@ -114,7 +115,7 @@ if __name__ == '__main__':
         boxes_3d = np.zeros((4,2,len(keep)))
         # 2D array for bounding boxes to be saved to .csv file
         # Each entry boxes_2d[:,i] = [[x1, y1, x2, y2, x3, y3, x4, y4]]
-        boxes_2d = np.zeros((8,len(keep))
+        boxes_2d = np.zeros((8,len(keep)))
 
         # Loop through all detections we kept after reduction
         for i, det in enumerate(det_data_array[keep]):
