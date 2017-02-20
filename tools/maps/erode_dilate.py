@@ -7,9 +7,9 @@ import os
 import string
 
 # Image directory
-images_dir = '/scratch3/terriyu/maps'
+images_dir = '/scratch3/terriyu/crop_images/base-rot'
 # Output directory
-out_dir = '/scratch3/terriyu/maps_augment'
+out_dir = '/scratch3/terriyu/crop_images'
 
 # List of all files in image directory
 image_files = os.listdir(images_dir)

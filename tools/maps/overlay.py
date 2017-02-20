@@ -56,11 +56,11 @@ def lighten_black(image, val):
 
 if __name__ == '__main__':
     # Image directory
-    images_dir = '/scratch3/terriyu/crop_images/base'
+    images_dir = '/scratch3/terriyu/crop_images/base-rot'
     # Overlays directory
     overlays_dir = '/scratch3/terriyu/overlays'
     # Output directory
-    out_dir = '/scratch3/terriyu/maps_overlay'
+    out_dir = '/scratch3/terriyu/crop_overlays'
 
     # List of all files in image directory
     image_files = os.listdir(images_dir)
