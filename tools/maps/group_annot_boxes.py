@@ -219,7 +219,7 @@ for im in gtruth_dict['data']:
         for idx, polygon in enumerate(gtruth_dict['data'][im][angle]):
             gtruth_dict['data'][im][angle][idx] = polygon.tolist()
 
-gtruth_file = 'gtruth_polygons.json'
+gtruth_file = 'gtruth_grouped_by_angle.json'
 with open(gtruth_file, 'w') as f:
     json.dump(gtruth_dict, f)
 
