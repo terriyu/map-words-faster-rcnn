@@ -112,6 +112,8 @@ if __name__ == '__main__':
     num_boxes_covered_all = 0
     num_missed_all = 0
     num_duplicates_all = 0
+    crops_omitted_all = 0
+    crops_all = 0
     width_missed = []
     height_missed = []
 
@@ -133,6 +135,8 @@ if __name__ == '__main__':
         num_boxes_covered_image = 0
         num_missed_image = 0
         num_duplicates_image = 0
+        crops_omitted_image = 0
+        crops_image = 0
         # Loop through all angles
         for angle in angles:
             print "Processing angle = %i degrees" % angle
@@ -160,6 +164,9 @@ if __name__ == '__main__':
                     # Find any bounding boxes in this crop
                     boxes_crop, idx_crop = boxes_contained_in_crop(h_start, h_end, w_start, w_end, boxes_angle, args.crop_size, im_crop, args.check)
                     idx_covered.extend(idx_crop)
+                    crops_image += 1
+                    if boxes_crop is None:
+                        crops_omitted_image += 1
                     # Write crop
                     col += 1
                     im_name = im_root + '_' + str(angle) + 'deg_crop_r' + format(row, '02d') + 'c' + format(col, '02d') + '.tiff'
@@ -179,6 +186,9 @@ if __name__ == '__main__':
                     # Find any bounding boxes in this crop
                     boxes_crop, idx_crop = boxes_contained_in_crop(h_start, h_end, w_start, w_end, boxes_angle, args.crop_size, im_crop, args.check)
                     idx_covered.extend(idx_crop)
+                    crops_image += 1
+                    if boxes_crop is None:
+                        crops_omitted_image += 1
                     # Write crop
                     col += 1
                     im_name = im_root + '_' + str(angle) + 'deg_crop_r' + format(row, '02d') + 'c' + format(col, '02d') + '.tiff'
@@ -204,6 +214,9 @@ if __name__ == '__main__':
                     # Find any bounding boxes in this crop
                     boxes_crop, idx_crop = boxes_contained_in_crop(h_start, h_end, w_start, w_end, boxes_angle, args.crop_size, im_crop, args.check)
                     idx_covered.extend(idx_crop)
+                    crops_image += 1
+                    if boxes_crop is None:
+                        crops_omitted_image += 1
                     # Write crop
                     col += 1
                     im_name = im_root + '_' + str(angle) + 'deg_crop_r' + format(row, '02d') + 'c' + format(col, '02d') + '.tiff'
@@ -223,6 +236,9 @@ if __name__ == '__main__':
                     # Find any bounding boxes in this crop
                     boxes_crop, idx_crop = boxes_contained_in_crop(h_start, h_end, w_start, w_end, boxes_angle, args.crop_size, im_crop, args.check)
                     idx_covered.extend(idx_crop)
+                    crops_image += 1
+                    if boxes_crop is None:
+                        crops_omitted_image += 1
                     # Write crop
                     col += 1
                     im_name = im_root + '_' + str(angle) + 'deg_crop_r' + format(row, '02d') + 'c' + format(col, '02d') + '.tiff'
@@ -256,11 +272,13 @@ if __name__ == '__main__':
         num_boxes_covered_all += num_boxes_covered_image
         num_missed_all += num_missed_image
         num_duplicates_all += num_duplicates_image
+        crops_omitted_all += crops_omitted_image
+        crops_all += crops_image
         # Print total stats for one image
-        print "%s tot: # boxes = %i, # boxes covered = %i, # boxes missed = %i, # duplicates = %i" % (im_root, num_boxes_image, num_boxes_covered_image, num_missed_image, num_duplicates_image)
+        print "%s tot: # boxes = %i, # boxes covered = %i, # boxes missed = %i, # duplicates = %i, # crops = %i, # crops omitted = %i" % (im_root, num_boxes_image, num_boxes_covered_image, num_missed_image, num_duplicates_image, crops_image, crops_omitted_image)
 
     # Print total stats for all images in directory
-    print "All images: # boxes = %i, # boxes covered = %i, # boxes missed = %i, # duplicates = %i" % (num_boxes_all, num_boxes_covered_all, num_missed_all, num_duplicates_all)
+    print "All images: # boxes = %i, # boxes covered = %i, # boxes missed = %i, # duplicates = %i, # crops = %i, # crops omitted = %i" % (num_boxes_all, num_boxes_covered_all, num_missed_all, num_duplicates_all, crops_all, crops_omitted_all)
 
     # Close training labels file
     f_labels.close()
