@@ -28,7 +28,7 @@ np.seterr(all='raise')
 # Optional flag to write image files for checking boxes
 CHECK_BOXES = False
 # Optional flag to plot histograms
-PLOT_HIST = True
+PLOT_HIST = False
 
 images_dir = 'images'
 
@@ -92,54 +92,54 @@ for mat_file in mat_files:
     mat_dict = sio.loadmat(os.path.join(mat_dir, mat_file))
 
     # Prepare to extract annotations
-    polygons = mat_dict['V'][0][0]
-    num_cells = polygons.shape[0]
+    ndx_dim = mat_dict['V'].shape[1]
+    for n in xrange(ndx_dim):
+        cell_ndx = mat_dict['V'][0][n]
+        lndx = cell_ndx.shape[0]
 
-    # Loop through each annotation in the file
-    for k in xrange(num_cells):
-        poly_cell = polygons[k][0][0]
-        cell_length = len(poly_cell)
-        for m in xrange(cell_length):
-            p = poly_cell[m]
-            # Extract x and y coordinates for polygon
-            # Force cast to float64 (in some rare cases, coords are read as int)
-            x_coords = np.float64(p[0, :])
-            y_coords = np.float64(p[1, :])
-            # Check if polygon is valid
-            # Construct polygon exterior
-            exterior_gt = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))]
-            exterior_gt.append(exterior_gt[0])
-            # Create polygon object from exterior
-            poly_gt = Polygon(exterior_gt)
-            if (not poly_gt.is_valid):
-                print "V{1}{%i}{%i}" % (k, m)
-                print "Invalid polygon with points"
-                print exterior_gt
-                print p
-            # Find orientation of polygon
-            x1 = x_coords[0]
-            y1 = y_coords[0]
-            x2 = x_coords[1]
-            y2 = y_coords[1]
-            orientation = np.arctan2(y2 - y1, x2 - x1) * 180.0 / np.pi
-            orientations.append(orientation)
-            # Update statistics on quadrant for orientation
-            if x2 >= x1:
-                if y2 >= y1:
-                    q1 += 1
+        # Loop through each annotation in the file
+        for l in xrange(lndx):
+            wndx = cell_ndx[l][0].shape[1]
+            for w in xrange(wndx):
+                cell_wndx = cell_ndx[l][0][0][w]
+                # Extract x and y coordinates for polygon
+                # Force cast to float64 (in some rare cases, coords are read as int)
+                x_coords = np.float64(cell_wndx[0, :])
+                y_coords = np.float64(cell_wndx[1, :])
+                # Check if polygon is valid
+                # Construct polygon exterior
+                exterior_gt = [(x_coords[i], y_coords[i]) for i in xrange(len(x_coords))]
+                exterior_gt.append(exterior_gt[0])
+                # Create polygon object from exterior
+                poly_gt = Polygon(exterior_gt)
+                if (not poly_gt.is_valid):
+                    print "V{%i}{%i}{%i}" % (n, l, w)
+                    print "Invalid polygon with points"
+                    print exterior_gt
+                # Find orientation of polygon
+                x1 = x_coords[0]
+                y1 = y_coords[0]
+                x2 = x_coords[1]
+                y2 = y_coords[1]
+                orientation = np.arctan2(y2 - y1, x2 - x1) * 180.0 / np.pi
+                orientations.append(orientation)
+                # Update statistics on quadrant for orientation
+                if x2 >= x1:
+                    if y2 >= y1:
+                        q1 += 1
+                    else:
+                        q4 += 1
                 else:
-                    q4 += 1
-            else:
-                if y2 >= y1:
-                    q2 += 1
-                else:
-                    q3 += 1
-            # Add polygon coordinates to ground truth dictionary under appropriate angle key
-            # FIX: Temporarily throw out labels with orientations in 2nd and 3rd quadrants
-            if ((orientation > -(angle_max + angle_step / 2.0)) and (orientation < angle_max + angle_step / 2.0)):
-                bounding_polygon = np.vstack((x_coords, y_coords))
-                closest_angle = int(angles[np.argmin(np.abs(angles - orientation))])
-                gtruth_dict['data'][im_root][closest_angle].append(bounding_polygon)
+                    if y2 >= y1:
+                        q2 += 1
+                    else:
+                        q3 += 1
+                # Add polygon coordinates to ground truth dictionary under appropriate angle key
+                # FIX: Temporarily throw out labels with orientations in 2nd and 3rd quadrants
+                if ((orientation > -(angle_max + angle_step / 2.0)) and (orientation < angle_max + angle_step / 2.0)):
+                    bounding_polygon = np.vstack((x_coords, y_coords))
+                    closest_angle = int(angles[np.argmin(np.abs(angles - orientation))])
+                    gtruth_dict['data'][im_root][closest_angle].append(bounding_polygon)
 
     print "Finished processing %s" % mat_file
 
